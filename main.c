@@ -10,6 +10,11 @@
 #include <pthread.h>
 
 
+#define RECV_BUF_SIZE 512
+#define SEND_BUF_SIZE 512
+#define N_WORKERS 5
+
+
 typedef struct Node Node;
 typedef struct Queue Queue;
 
@@ -93,7 +98,7 @@ void tcp_server() {
     // define the server address
     struct sockaddr_in server_address;
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(9002);
+    server_address.sin_port = htons(9004);
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     // bind the socket to our specified IP and port
@@ -111,6 +116,9 @@ void tcp_server() {
         perror("HH_ERROR: listen() call failed");
         exit(1);
     }
+
+    printf("TCP server started.\n");
+
     while (1) {
         int client_socket;
         client_socket = accept(server_socket, NULL, NULL);
@@ -125,9 +133,25 @@ void processing_client_service(int client_socket) {
     // получить client_socket
     // отправить в него данные
 
-    char msg[32] = "eee lezgistan";
+    int rcvd, metric_id;
+    char *buf = malloc(RECV_BUF_SIZE);
 
-    send(client_socket, msg, sizeof(msg), 0);
+    rcvd = recv(client_socket, buf, RECV_BUF_SIZE, 0);
+
+    if (rcvd < 0)    // receive error
+        printf(("recv() error\n"));
+    else if (rcvd == 0)    // receive socket closed
+        printf("Client disconnected upexpectedly.\n");
+    else { // message received
+
+        printf("Received query from %d.\n", client_socket);
+
+        sscanf(buf, "%d", &metric_id);
+        printf("%d\n", metric_id);
+    }
+
+    send(client_socket, buf, RECV_BUF_SIZE, 0);
+    free(buf);
     close(client_socket);
 }
 
@@ -146,12 +170,14 @@ void *tcp_server_worker(void *arg) {
 
 
 int main() {
-    pthread_t threads[5];
-    for (int i = 0; i < 5; i++) {
+    pthread_t threads[N_WORKERS];
+    for (int i = 0; i < N_WORKERS; i++) {
         int result = pthread_create(&threads[i], NULL, tcp_server_worker, NULL);
         if (result) {
             printf("Thread could not be created. Error number: %d. Thread number %d\n", result, i);
             exit(1);
+        } else {
+            printf("Worker thread created. Worker number %d\n", i);
         }
 
     }
