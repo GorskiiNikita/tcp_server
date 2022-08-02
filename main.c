@@ -144,10 +144,16 @@ void processing_client_service(int client_socket) {
         printf("Client disconnected upexpectedly.\n");
     else { // message received
 
-        printf("Received query from %d.\n", client_socket);
+        printf("Received query. Client socket %d.\n", client_socket);
 
         sscanf(buf, "%d", &metric_id);
-        printf("%d\n", metric_id);
+
+        switch (metric_id) {
+            case 1:
+                // top_bio_words
+                printf("%d\n", metric_id);
+        }
+
     }
 
     send(client_socket, buf, RECV_BUF_SIZE, 0);
